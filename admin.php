@@ -1,0 +1,84 @@
+<?php 
+ require_once 'functions.php';
+ ?><?php if (getUsername($_SESSION['user']['username'])) {?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="utf-8">
+	<title>Главная</title>
+	<link href="https://fonts.googleapis.com/css?family=Oswald:400,700&amp;subset=cyrillic,latin-ext" rel="stylesheet">
+	<link rel="stylesheet" href="styles.css">
+	<script type="text/javascript" src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+</head>
+<body>
+	<div class="wrapper">
+		<h1>Добро пожаловать на сайт самотестирования</h1>
+		<nav>
+			<ul>
+				<li><a href="admin.php">Главная</a></li>
+				<li><a href="list.php">Список Тестов</a></li>
+			</ul>
+		</nav>
+		<h2>Для начала загрузите файл теста:</h2>
+		
+		<form method="post" enctype="multipart/form-data" action="admin.php">
+			<div class="file-upload">
+			     <label>
+			          <input type="file" name="uploaded_file">
+			          <span>Выбрать файл</span>
+			     </label>
+			</div>
+			<input type="text" id="filename" class="filename" disabled>
+			<input type="submit" value="Загрузить" class="button">
+		</form>
+
+		<?php
+			$file_dir = "tests/";
+			if(isset($_FILES['uploaded_file']['name']) && !empty($_FILES['uploaded_file']['name']))
+			{
+				$filename = htmlspecialchars($_FILES['uploaded_file']['name']);
+				$target_file = $file_dir . basename($_FILES['uploaded_file']['name']);
+				$file_type = pathinfo($target_file, PATHINFO_EXTENSION);
+				if($file_type != "json") 
+				{
+				    echo "<p class='sub_text'>Ошибка: файл НЕ загружен! Файл должен быть типа .json</p>";
+				    exit;
+			    }
+			    $test_json = $_FILES['uploaded_file']['tmp_name'];
+				$test = file_get_contents($test_json);
+				$test = json_decode($test, true);
+				foreach($test as $qnumber => $qobj)
+				{
+				    if (isset($qnumber) && isset($qobj['answers']) && isset($qobj['question'])) 
+				    {   	
+						if($_FILES['uploaded_file']['error'] === UPLOAD_ERR_OK && move_uploaded_file($_FILES['uploaded_file']['tmp_name'], $target_file))
+						{
+							echo "<p class='sub_text'>Файл загружен</p>"; 
+							header('Location: ' . 'list.php');
+						}
+					}
+					else
+					{
+						echo "<p class='sub_text'>Файл НЕ загружен, т.к. не удовлетворяет требованиям по содержанию</p>"; break;
+					}
+				
+				}
+			}
+		?>
+		<p class="before_button">*ВНИМАНИЕ! После нажатия на кнопку "ЗАГРУЗИТЬ", Вы будете перенаправленны на страницу со списком загруженных тестов</p>
+		<div class="login">
+			<p>Привет, <?= $_SESSION['user']['username'] ?></p>
+			    <?php } else {header("HTTP/1.0 403 Forbidden"); echo 'HTTP/1.0 403 Forbidden<br>Вы не можете попасть в админ панел, так как залогинены под ГОСТЕМ<br>';} ?>
+	    	<a href="logout.php">Выйти</a>
+    	</div>
+	</div>
+	    <script>
+			$(document).ready( function() {
+		    $(".file-upload input[type=file]").change(function(){
+		         var filename = $(this).val().replace(/.*\\/, "");
+		         $("#filename").val(filename);
+		    });
+		});
+	</script>
+</body>
+</html>
